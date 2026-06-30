@@ -68,7 +68,8 @@ jobs:
         password: ${{ secrets.VPS_PASSWORD }}
         port: ${{ secrets.VPS_SSH_PORT }}
         script: |
-          echo "✅ Desplegando los servicios"
-          cd ~/proyectodevops
+          echo "✅ Desplegando los servicios con Docker Compose"
+          cd /root/proyectodevops
           docker pull ghcr.io/yaviracjorge/proyectodevops:1.0.0
-          docker stack deploy -c stack.yml borrar      
+          # Cambiamos 'docker stack deploy' por 'docker compose up'
+          docker compose up -d     

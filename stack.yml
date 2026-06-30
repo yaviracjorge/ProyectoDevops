@@ -1,28 +1,18 @@
 version: "3.9"
+
 services:
   proyectdevops:
     image: ghcr.io/yaviracjorge/proyectodevops:1.0.0
-    networks:
-      - traefik-public
-    deploy:
-      replicas: 1
-      labels:
-        - "traefik.enable=true"
-        # 1. Cambiado de 'http' a 'web'
-        - "traefik.http.routers.proyectdevops.entrypoints=web"
-        - "traefik.http.routers.proyectdevops.rule=Host(`srv1793615.hstgr.cloud`)"
-        - "traefik.http.middlewares.proyectdevops-https-redirect.redirectscheme.scheme=https"
-        - "traefik.http.routers.proyectdevops.middlewares=proyectdevops-https-redirect"
-        # 2. Cambiado de 'https' a 'websecure'
-        - "traefik.http.routers.proyectdevops-secure.entrypoints=websecure"
-        - "traefik.http.routers.proyectdevops-secure.rule=Host(`srv1793615.hstgr.cloud`)"
-        - "traefik.http.routers.proyectdevops-secure.tls=true"
-        # 3. Cambiado de 'http' a 'letsencrypt' según la config de tu VPS
-        - "traefik.http.routers.proyectdevops-secure.tls.certresolver=letsencrypt"
-        - "traefik.http.routers.proyectdevops-secure.service=proyectdevops"
-        - "traefik.http.services.proyectdevops.loadbalancer.server.port=5000"
-        - "traefik.docker.network=traefik-public"
-
-networks:
-  traefik-public:
-    external: true
+    # Las etiquetas se ponen directamente bajo el servicio en Compose clásico
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.proyectdevops.entrypoints=web"
+      - "traefik.http.routers.proyectdevops.rule=Host(`srv1793615.hstgr.cloud`)"
+      - "traefik.http.middlewares.proyectdevops-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.proyectdevops.middlewares=proyectdevops-https-redirect"
+      - "traefik.http.routers.proyectdevops-secure.entrypoints=websecure"
+      - "traefik.http.routers.proyectdevops-secure.rule=Host(`srv1793615.hstgr.cloud`)"
+      - "traefik.http.routers.proyectdevops-secure.tls=true"
+      - "traefik.http.routers.proyectdevops-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.proyectdevops-secure.service=proyectdevops"
+      - "traefik.http.services.proyectdevops.loadbalancer.server.port=5000"
