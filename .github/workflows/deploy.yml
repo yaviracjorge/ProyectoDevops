@@ -23,13 +23,13 @@ jobs:
       run: pip install -r requirements.txt
         
     - name: Costruir imagen de docker
-      run: docker build -t ghcr.io/yaviracjorge/landing:1.0.0 .
+      run: docker build -t ghcr.io/yaviracjorge/proyectodevops:1.0.0 .
     
     - name: Login en GitHub Container Registry
       run: echo "${{ secrets.GHCR_PATH }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
     
     - name: Publicar la imagen creada
-      run: docker push ghcr.io/yaviracjorge/landing:1.0.0
+      run: docker push ghcr.io/yaviracjorge/proyectodevops:1.0.0
 
     
     - name: 🧾 Mostrar variables básicas (solo locales, no secretos)
