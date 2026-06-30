@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  proyectdevops:
+    image: ghcr.io/yaviracjorge/proyectodevops:1.0.0
+    networks:
+      - traefik-public
+
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.proyectdevops.entrypoints=http"
+        - "traefik.http.routers.proyectdevops.rule=Host(`srv1793615.hstgr.cloud`)"
+        - "traefik.http.middlewares.proyectdevops-https-redirect.redirectscheme.scheme=https"
+        - "traefik.http.routers.proyectdevops.middlewares=proyectdevops-https-redirect"
+        - "traefik.http.routers.proyectdevops-secure.entrypoints=https"
+        - "traefik.http.routers.proyectdevops-secure.rule=Host(`srv1793615.hstgr.cloud`)"
+        - "traefik.http.routers.proyectdevops-secure.tls=true"
+        - "traefik.http.routers.proyectdevops-secure.tls.certresolver=http"
+        - "traefik.http.routers.proyectdevops-secure.service=proyectdevops"
+        - "traefik.http.services.proyectdevops.loadbalancer.server.port=5000"
+        - "traefik.docker.network=traefik-public"
+
+networks:
+  traefik-public:
+    external: true
