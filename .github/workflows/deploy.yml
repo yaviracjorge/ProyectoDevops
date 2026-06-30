@@ -71,5 +71,5 @@ jobs:
           echo "✅ Desplegando los servicios con Docker Compose"
           cd /root/proyectodevops
           docker pull ghcr.io/yaviracjorge/proyectodevops:1.0.0
-          # Cambiamos 'docker stack deploy' por 'docker compose up'
-          docker compose up -d     
+          # Añadimos el parámetro -f para especificar tu archivo stack.yml
+          docker compose -f stack.yml up -d  
