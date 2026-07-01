@@ -37,10 +37,7 @@ services:
       - "traefik.http.routers.pgadmin-secure.rule=Host(`srv1793615.hstgr.cloud`) && PathPrefix(`/pgadmin`)"
       - "traefik.http.routers.pgadmin-secure.tls=true"
       - "traefik.http.routers.pgadmin-secure.tls.certresolver=letsencrypt"
-      - "traefik.http.middlewares.pgadmin-strip.stripprefix.prefixes=/pgadmin"
-      - "traefik.http.routers.pgadmin.middlewares=pgadmin-strip"
-      - "traefik.http.routers.pgadmin-secure.middlewares=pgadmin-strip"
-      - "traefik.http.services.pgadmin.loadbalancer.server.port=80"  
+      - "traefik.http.services.pgadmin.loadbalancer.server.port=80" 
     
   proyectdevops:
     image: ghcr.io/yaviracjorge/proyectodevops:1.0.0
