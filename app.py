@@ -1,116 +1,377 @@
-from flask import Flask, render_template_string
+import os
+import psycopg2
+from flask import Flask, render_template_string, jsonify
 
 app = Flask(__name__)
+
+# ==========================
+# CONFIGURACIÓN
+# ==========================
+
+APP_NAME = os.getenv("APP_NAME", "Aplicación DevOps")
+
+try:
+    with open("VERSION", "r") as f:
+        APP_VERSION = f.read().strip()
+except FileNotFoundError:
+    APP_VERSION = os.getenv("APP_VERSION", "3.0.0")
+
+DB_HOST = os.getenv("DB_HOST", "db")
+DB_NAME = os.getenv("DB_NAME", "postgres")
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
+
+
+# ==========================
+# BASE DE DATOS
+# ==========================
+
+def get_db_connection():
+    return psycopg2.connect(
+        host=DB_HOST,
+        database=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD
+    )
+
+
+def init_db():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS productos(
+            id SERIAL PRIMARY KEY,
+            nombre VARCHAR(100),
+            precio NUMERIC(10,2),
+            stock INT
+        );
+        """)
+
+        cur.execute("SELECT COUNT(*) FROM productos")
+
+        if cur.fetchone()[0] == 0:
+
+            productos = [
+                ('Laptop ASUS',899.99,15),
+                ('Mouse Logi',25.50,50),
+                ('Teclado Mecánico',75,30),
+                ('Monitor 24"',150,20),
+                ('Audífonos Gamer',45.90,40)
+            ]
+
+            cur.executemany(
+                "INSERT INTO productos(nombre,precio,stock) VALUES(%s,%s,%s)",
+                productos
+            )
+
+            print("Productos iniciales insertados.")
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    except Exception as e:
+        print("BD no disponible todavía:", e)
+
+
+# ==========================
+# HTML
+# ==========================
 
 HTML = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reloj Digital</title>
 
-    <style>
-        *{
-            margin:0;
-            padding:0;
-            box-sizing:border-box;
-            font-family:'Segoe UI', sans-serif;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        body{
-            height:100vh;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            background:linear-gradient(135deg,#0f172a,#1e293b,#334155);
-            overflow:hidden;
-        }
+<title>{{app_name}}</title>
 
-        .container{
-            text-align:center;
-            background:rgba(255,255,255,0.08);
-            backdrop-filter:blur(15px);
-            padding:50px;
-            border-radius:30px;
-            box-shadow:0 0 30px rgba(0,0,0,0.4);
-            color:white;
-            width:90%;
-            max-width:600px;
-        }
+<style>
 
-        h1{
-            font-size:3rem;
-            margin-bottom:20px;
-            color:#38bdf8;
-        }
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI,sans-serif;
+}
 
-        .clock{
-            font-size:5rem;
-            font-weight:bold;
-            letter-spacing:4px;
-            color:#fff;
-            text-shadow:0 0 20px #38bdf8;
-        }
+body{
 
-        .date{
-            margin-top:20px;
-            font-size:1.5rem;
-            color:#cbd5e1;
-        }
+background:linear-gradient(135deg,#0f172a,#1e293b,#334155);
+color:white;
+padding:40px;
 
-        .footer{
-            margin-top:30px;
-            color:#94a3b8;
-        }
-    </style>
+}
+
+.container{
+
+max-width:900px;
+margin:auto;
+background:rgba(255,255,255,.08);
+backdrop-filter:blur(15px);
+padding:40px;
+border-radius:20px;
+box-shadow:0 0 20px rgba(0,0,0,.4);
+
+}
+
+h1{
+
+text-align:center;
+color:#38bdf8;
+
+}
+
+.clock{
+
+font-size:60px;
+text-align:center;
+margin-top:20px;
+font-weight:bold;
+
+}
+
+.date{
+
+text-align:center;
+margin-top:10px;
+font-size:20px;
+
+}
+
+.info{
+
+margin-top:40px;
+font-size:18px;
+
+}
+
+table{
+
+width:100%;
+margin-top:20px;
+border-collapse:collapse;
+
+}
+
+th{
+
+background:#38bdf8;
+color:#000;
+padding:12px;
+
+}
+
+td{
+
+padding:10px;
+border-bottom:1px solid rgba(255,255,255,.2);
+text-align:center;
+
+}
+
+.footer{
+
+margin-top:25px;
+text-align:center;
+color:#94a3b8;
+
+}
+
+</style>
+
 </head>
+
 <body>
 
 <div class="container">
-    <h1>⏰ Reloj Digital</h1>
 
-    <div class="clock" id="clock">
-        00:00:00
-    </div>
+<h1>⏰ {{app_name}}</h1>
 
-    <div class="date" id="date">
-        Cargando fecha...
-    </div>
+<div id="clock" class="clock">
+00:00:00
+</div>
 
-    <div class="footer">
-        Landing Page con Flask
-    </div>
+<div id="date" class="date">
+...
+</div>
+
+<div class="info">
+
+<p><strong>Versión:</strong> {{version}}</p>
+
+<p><strong>Estado PostgreSQL:</strong> {{db_status}}</p>
+
+</div>
+
+<h2 style="margin-top:35px;">Productos</h2>
+
+<table>
+
+<tr>
+
+<th>ID</th>
+<th>Nombre</th>
+<th>Precio</th>
+<th>Stock</th>
+
+</tr>
+
+{% for p in productos %}
+
+<tr>
+
+<td>{{p[0]}}</td>
+<td>{{p[1]}}</td>
+<td>${{p[2]}}</td>
+<td>{{p[3]}}</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+<div class="footer">
+Flask + PostgreSQL + DevOps
+</div>
+
 </div>
 
 <script>
+
 function updateClock(){
-    const now = new Date();
 
-    const time = now.toLocaleTimeString('es-EC');
-    const date = now.toLocaleDateString('es-EC',{
-        weekday:'long',
-        year:'numeric',
-        month:'long',
-        day:'numeric'
-    });
+const now=new Date();
 
-    document.getElementById("clock").innerHTML = time;
-    document.getElementById("date").innerHTML =
-        date.charAt(0).toUpperCase() + date.slice(1);
+document.getElementById("clock").innerHTML=
+now.toLocaleTimeString("es-EC");
+
+let fecha=now.toLocaleDateString("es-EC",{
+
+weekday:"long",
+year:"numeric",
+month:"long",
+day:"numeric"
+
+});
+
+document.getElementById("date").innerHTML=
+fecha.charAt(0).toUpperCase()+fecha.slice(1);
+
 }
 
 setInterval(updateClock,1000);
+
 updateClock();
+
 </script>
 
 </body>
+
 </html>
 """
 
+
+# ==========================
+# RUTAS
+# ==========================
+
 @app.route("/")
 def home():
-    return render_template_string(HTML)
+
+    try:
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM productos")
+
+        productos = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        estado = "🟢 Conectado"
+
+    except Exception as e:
+
+        productos = []
+        estado = f"🔴 {e}"
+
+    return render_template_string(
+        HTML,
+        app_name=APP_NAME,
+        version=APP_VERSION,
+        db_status=estado,
+        productos=productos
+    )
+
+
+@app.route("/productos")
+def productos():
+
+    try:
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM productos")
+
+        rows = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        return jsonify([
+            {
+                "id":r[0],
+                "nombre":r[1],
+                "precio":float(r[2]),
+                "stock":r[3]
+            }
+            for r in rows
+        ])
+
+    except Exception as e:
+
+        return jsonify({"error":str(e)}),500
+
+
+@app.route("/api/info")
+def info():
+
+    try:
+        conn = get_db_connection()
+        conn.close()
+        estado = "Conectado"
+
+    except Exception as e:
+        estado = str(e)
+
+    return jsonify({
+
+        "nombre_aplicacion":APP_NAME,
+        "version":APP_VERSION,
+        "postgresql":estado
+
+    })
+
+
+# ==========================
+# MAIN
+# ==========================
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+
+    init_db()
+
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+    )

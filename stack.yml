@@ -1,9 +1,59 @@
 version: "3.9"
 
 services:
+  db:
+    image: postgres:15-alpine
+    container_name: devops_postgres
+    environment:
+      POSTGRES_DB: tienda_db
+      POSTGRES_USER: devops_user
+      POSTGRES_PASSWORD: devops_password_2026
+
+    volumes:
+      - postgres_data_nuevo:/var/lib/postgresql/data  # <--- Cambiamos el nombre aquí
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devops_user -d tienda_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: devops_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@devops.com
+      PGADMIN_DEFAULT_PASSWORD: adminpassword
+      SCRIPT_NAME: /pgadmin
+    
+    depends_on:
+      - db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pgadmin.entrypoints=web"
+      - "traefik.http.routers.pgadmin.rule=Host(`srv1793615.hstgr.cloud`) && PathPrefix(`/pgadmin`)"
+      - "traefik.http.routers.pgadmin-secure.entrypoints=websecure"
+      - "traefik.http.routers.pgadmin-secure.rule=Host(`srv1793615.hstgr.cloud`) && PathPrefix(`/pgadmin`)"
+      - "traefik.http.routers.pgadmin-secure.tls=true"
+      - "traefik.http.routers.pgadmin-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.pgadmin-strip.stripprefix.prefixes=/pgadmin"
+      - "traefik.http.routers.pgadmin.middlewares=pgadmin-strip"
+      - "traefik.http.routers.pgadmin-secure.middlewares=pgadmin-strip"
+      - "traefik.http.services.pgadmin.loadbalancer.server.port=80"  
+    
   proyectdevops:
     image: ghcr.io/yaviracjorge/proyectodevops:1.0.0
-    # Las etiquetas se ponen directamente bajo el servicio en Compose clásico
+    container_name: devops_flask_app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_NAME: "Sistema de Inventario DevOps"
+      DB_HOST: db
+      DB_NAME: tienda_db
+      DB_USER: devops_user
+      DB_PASSWORD: devops_password_2026
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.proyectdevops.entrypoints=web"
@@ -16,3 +66,6 @@ services:
       - "traefik.http.routers.proyectdevops-secure.tls.certresolver=letsencrypt"
       - "traefik.http.routers.proyectdevops-secure.service=proyectdevops"
       - "traefik.http.services.proyectdevops.loadbalancer.server.port=5000"
+
+volumes:
+  postgres_data_nuevo:
